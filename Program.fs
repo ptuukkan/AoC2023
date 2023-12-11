@@ -6,5 +6,5 @@ module Program =
     [<EntryPoint>]
     let main args =
         let input = args[0] |> File.ReadLines
-        printf "%0A\n" (Day10.part2 input)
+        printf "%0A\n" (Day11.part2 input)
         0
