@@ -5,6 +5,6 @@ open System.IO
 module Program =
     [<EntryPoint>]
     let main args =
-        let input = args[0] |> File.ReadLines
-        printf "%0A\n" (Day14.part2 input)
+        let input = args[0] |> File.ReadAllText
+        printf "%0A\n" (Day15.part2 input)
         0
