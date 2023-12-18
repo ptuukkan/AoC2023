@@ -53,7 +53,8 @@ module Day16 =
     let energize (contraption: char array array) (trails: (Direction * (int * int)) list list) direction x y =
         let rec beam (direction: Direction) ((x, y): int * int) (trail: (Direction * (int * int)) list) =
             match memoized trails direction x y with
-            | Some memoizedTrail -> Return(trail @ memoizedTrail)
+            | Some memoizedTrail ->
+                Return(trail @ memoizedTrail)
             | None ->
                 if isNewStep trail direction x y then
                     match direction, getSymbol contraption x y with
