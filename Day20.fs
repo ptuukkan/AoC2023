@@ -204,5 +204,4 @@ module Day20 =
             ))
             |> addConnections
 
-        resolveTarget modules "rx"
-        |> calculateCycles (getCycles modules)
+        resolveTarget modules "rx" |> calculateCycles (getCycles modules)
