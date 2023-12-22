@@ -97,12 +97,6 @@ module Day21 =
                 if cycle <> hs then
                     cycle <- hs
                     let length = visited |> Seq.filter (fun x -> x.Value % 2 = cycle % 2) |> Seq.length
-
-                    let prev_length =
-                        match history |> List.tryHead with
-                        | None -> 0
-                        | Some(pc, pl) -> pl
-
                     history <- history @ [ (cycle, length) ]
                     pattern <- findPattern cycle patternLength history
 
@@ -139,33 +133,31 @@ module Day21 =
 
         let start_x = farm[start_y] |> Array.findIndex (fun x -> x = 'S')
 
-        let stuff = farm |> walk start_x start_y 6 |> Seq.distinct
-        stuff |> Seq.length |> (printfn "%0A")
-
-        stuff
+        farm
+        |> walk start_x start_y 64
         |> Seq.filter (fun kv -> kv.Value % 2 = 0)
         |> Seq.length
-        |> (printfn "%0A")
 
     let part2 (input: string seq) =
         let farm = input |> Array.ofSeq |> Array.map _.ToCharArray()
         let target = 26501365
+
         let start_y =
             farm
             |> Array.findIndex (fun x -> x |> Array.tryFind (fun b -> b = 'S') |> Option.isSome)
 
         let start_x = farm[start_y] |> Array.findIndex (fun x -> x = 'S')
 
-        let magic, history =
-            farm |> infiniteWalk start_x start_y farm.Length 
-        
+        let magic, history = farm |> infiniteWalk start_x start_y farm.Length
+
         let cycle, _a = List.last history
         let start = ((target - cycle - farm.Length) % farm.Length) + (cycle - farm.Length)
         let _c, start_length = history[start - 2]
         let n = (target - start) / farm.Length |> double
+
         let diff =
             let _c, prev_length = history[start - farm.Length - 2]
             start_length - prev_length |> double
-       
+
         double start_length + (diff * n) + (n / 2.0) * (1.0 + n) * double magic
         |> uint64
