@@ -7,5 +7,5 @@ module Program =
     let main args =
         // let input = @"c:\users\pektuu\projects\AoC2023\inputs\day12" |> File.ReadLines
         let input = args[0] |> File.ReadLines
-        printf "%0A\n" (Day23.part1 input)
+        printf "%0A\n" (Day24.part1 input)
         0
