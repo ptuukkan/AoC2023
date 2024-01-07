@@ -1,7 +1,5 @@
 namespace AoC2023
 
-open System
-
 module Day10 =
     type Direction =
         | North
