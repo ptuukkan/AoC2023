@@ -1,7 +1,6 @@
 namespace AoC2023
 
 open System
-open System.Collections.Generic
 open FSharpx.Collections
 
 module Day25 =
@@ -31,85 +30,24 @@ module Day25 =
         let s = str.Split(':', StringSplitOptions.TrimEntries)
         s[0], s[1].Split(' ', StringSplitOptions.TrimEntries)
 
-    let memoize f =
-        let dict = Dictionary<_, _>()
-
-        fun src dst curr visited ->
-            let exist, value = dict.TryGetValue((curr, dst))
-
-            match exist with
-            | true ->
-                // printfn "memoized!"
-                value
-            | _ ->
-                let value = f src dst curr visited
-                dict.Add((curr, dst), value)
-                value
-
-    let traverse (graph: Map<string, string list>) (combinations: string list list) =
-        let visited = HashSet<string * string * string>()
-        let memo = Dictionary<_, _>()
-
-        let concatPathAndSave (path: string list option) (curr: string) (dst: string) =
-            path
-            |> Option.bind (fun p ->
-                let newPath = curr :: p
-                let exists, value = memo.TryGetValue((curr, dst))
-
-                if exists && (List.length newPath) < (List.length value) then
-                    memo.Remove((curr, dst)) |> ignore
-                    memo.Add((curr, dst), newPath)
-                elif exists |> not then
-                    memo.Add((curr, dst), newPath)
-
-                Some(newPath))
-            |> Return
-
-        let rec traverse' (src: string) (dst: string) (curr: string) (trail: string list) =
-            if curr = dst then
-                Return(Some([ curr ]))
-            else
-                // visited.Add(src, dst, curr) |> ignore
-
-                let exist, value = memo.TryGetValue((curr, dst))
-                if exist then
-                    printfn "memoized!"
-                    Return(Some(value))
+    let traverse (graph: Map<string, string list>) (src: string) (dst: string) =
+        let rec traverse' (visited: string list) (queue: IPriorityQueue<int * string * string list>) =
+            match queue |> PriorityQueue.tryPop with
+            | None -> failwith "todo"
+            | Some((steps, curr, trail), tail) ->
+                if curr = dst then
+                    trail
                 else
-
                     let connections =
-                        graph[curr] |> List.filter (fun x -> trail |> List.contains x |> not)
+                        graph[curr] |> List.filter (fun x -> visited |> List.contains x |> not)
 
-                    match connections with
-                    | [] -> Return(None)
-                    | [ next ] ->
-                        Suspend(fun () -> traverse' src dst next (curr :: trail))
-                        >>= (fun path -> concatPathAndSave path curr dst)
-                    | _ ->
+                    let new_queue =
                         connections
-                        |> List.map (fun next -> Suspend(fun () -> traverse' src dst next (curr :: trail)))
-                        |> List.reduce (fun acc e ->
-                            acc
-                            >>= (fun a ->
-                                e
-                                >>= (fun b ->
-                                    match a, b with
-                                    | Some aa, Some bb -> if aa.Length < bb.Length then Return a else Return b
-                                    | Some _, _ -> Return a
-                                    | _, Some _ -> Return b
-                                    | _ -> Return None)))
-                        >>= (fun path -> concatPathAndSave path curr dst)
-        // let head = graph.Keys |> Seq.head
-        // graph.Keys
-        // |> Seq.filter (fun x -> x <> head)
-        // |> Seq.map (fun dst -> traverse' head dst head [] |> execute)
-        // |> List.ofSeq
-        // |> List.skip 1
-        // |> List.head
-        // |> (fun nodes -> nodes, traverse' nodes[0] nodes[1] nodes[0] [] |> execute)
-        combinations
-        |> List.map (fun nodes -> traverse' nodes[0] nodes[1] nodes[0] [] |> execute)
-        |> List.choose id
+                        |> List.fold (fun q next -> q |> PriorityQueue.insert (steps + 1, next, curr :: trail)) tail
+
+                    traverse' (curr :: visited) new_queue
+
+        PriorityQueue.empty false |> PriorityQueue.insert (0, src, []) |> traverse' []
 
     let connectionPairs (paths: string list list) =
         paths
@@ -150,10 +88,12 @@ module Day25 =
             match stack |> Queue.tryUncons with
             | None -> visited |> List.distinct |> List.length
             | Some(current, tail) ->
-                graph[current]
-                |> List.filter (fun x -> visited |> List.contains x |> not)
-                |> List.fold (fun new_stack next_node -> new_stack |> Queue.conj next_node) tail
-                |> countNodes' (current :: visited)
+                let q =
+                    graph[current]
+                    |> List.filter (fun x -> visited |> List.contains x |> not)
+                    |> List.fold (fun new_stack next_node -> new_stack |> Queue.conj next_node) tail
+
+                countNodes' (current :: visited) q
 
         Queue.empty<string> |> Queue.conj (graph.Keys |> Seq.head) |> countNodes' []
 
@@ -161,17 +101,18 @@ module Day25 =
         let graph =
             input |> Seq.map split |> Seq.fold createMap Map.empty<string, string list>
 
-        // let wiresToDisconnect =
-        graph.Keys
-        |> List.ofSeq
-        |> combinations 2
-        |> traverse graph
-        // |> connectionPairs
-        // |> uniqueOccurrences
-        // |> List.take 3
-        |> List.iter (printfn "%0A")
-// |> (printfn "%0A")
-//
-// printfn "%0A" wiresToDisconnect
-// let group1 = wiresToDisconnect |> List.fold disconnect graph |> countNodes
-// graph.Keys |> Seq.length |> (fun total -> group1 * (total - group1))
+        let rnd = Random()
+        let pairs = graph.Keys |> List.ofSeq |> combinations 2
+
+        let randomPairs =
+            [ for _ in 1..100 -> rnd.Next(0, pairs.Length) ] |> List.map (fun i -> pairs[i])
+
+        let wiresToDisconnect =
+            randomPairs
+            |> List.map (fun nodes -> traverse graph nodes[0] nodes[1])
+            |> connectionPairs
+            |> uniqueOccurrences
+            |> List.take 3
+
+        let group1 = wiresToDisconnect |> List.fold disconnect graph |> countNodes
+        graph.Keys |> Seq.length |> (fun total -> group1 * (total - group1))
